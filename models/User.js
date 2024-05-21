@@ -1,5 +1,5 @@
 const mongoose = require('mongoose')
-// const bcrypt = require('bcryptjs')
+//const bcrypt = require('bcryptjs')
 const model = mongoose.model
 
 userSchema = new mongoose.Schema({
@@ -38,7 +38,14 @@ userSchema = new mongoose.Schema({
             "type": "Buffer",
             data: []
         }
-    }
+    },
+    roles: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'roles', 
+            required: true
+        },
+    ]   
 },
 {
     timestamps: true,

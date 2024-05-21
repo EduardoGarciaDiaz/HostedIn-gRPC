@@ -3,8 +3,8 @@ const protoLoader = require("@grpc/proto-loader");
 const dotenv = require('dotenv');
 const fs = require('fs');
 const PROTO_PATH = "./proto/multimedia.proto";
-const User = require('./models/User')
-require('./database')
+const User = require('./models/User.js')
+require('./database.js')
 
 dotenv.config();
 
@@ -19,13 +19,13 @@ const server = new grpc.Server();
     });
 
 
-server.bindAsync(`localhost:${process.env.SERVER_PORT}`, grpc.ServerCredentials.createInsecure(), () => {
+server.bindAsync(`0.0.0.0:${process.env.SERVER_PORT}`, grpc.ServerCredentials.createInsecure(), () => {
     console.log(`Servidor gRPC en ejecución en el puerto ${process.env.SERVER_PORT}`);
 });
 
 
 async function uploadPhotoProfileImpl(call) {
-    let data = [];
+    let profilePhotoBuffer = Buffer.alloc(0);
     let userId;
 
     call.on('data', function(uploadProfilePhotoRequest){
@@ -34,20 +34,24 @@ async function uploadPhotoProfileImpl(call) {
             userId = uploadProfilePhotoRequest.userId;
         }
 
-        data.push(uploadProfilePhotoRequest.data);
+        profilePhotoBuffer = Buffer.concat([profilePhotoBuffer, uploadProfilePhotoRequest.data]);
     });
     
     call.on('end', async function () {
+        console.log('Upload complete. Saving photo...');
         try {
-            const user = await User.findByIdAndUpdate(userId, { profilePhoto: Buffer.concat(data) }, { new: true });
+            const user = await User.findOneAndUpdate(
+                { _id: userId },
+                { $set: { profilePhoto: profilePhotoBuffer } },
+                { new: true }
+            );
 
-            console.log(Buffer.concat(data))
             if (!user) {
                 console.error('User not found');
                 return;
             }
 
-            call.write({ description: 'Upload successful' });
+            call.write({ description: 'Upload successful. Profile photo updated' });
             call.end();
         } catch (err) {
             console.error(err);
