@@ -1,7 +1,7 @@
 syntax = "proto3";
 
-message UploadProfilePhotoRequest {
-    string userId = 1;
+message UploadMultimediaRequest {
+    string modelId = 1;
     bytes data = 2;
 }
 
@@ -9,8 +9,9 @@ message UploadMultimediaResponse {
     string description = 1;
 }
 
-message DownloadProfilePhotoRequest {
-    string userId = 1;
+message DownloadMultimediaRequest {
+    string modelId = 1;
+    int32 multimediaIndex = 2;
 }
 
 message DownloadMultimediaResponse {
@@ -18,6 +19,9 @@ message DownloadMultimediaResponse {
 }
 
 service MultimediaService {
-    rpc uploadPhotoProfile (stream UploadProfilePhotoRequest) returns (UploadMultimediaResponse);
-    rpc downloadProfilePhoto (DownloadProfilePhotoRequest) returns (stream DownloadMultimediaResponse);
+    rpc uploadProfilePhoto (stream UploadMultimediaRequest) returns (UploadMultimediaResponse);
+    rpc downloadProfilePhoto (DownloadMultimediaRequest) returns (stream DownloadMultimediaResponse);
+
+    rpc uploadAccommodationMultimedia (stream UploadMultimediaRequest) returns (UploadMultimediaResponse);
+    rpc downloadAccommodationMultimedia (DownloadMultimediaRequest) returns (stream DownloadMultimediaResponse);
 }
