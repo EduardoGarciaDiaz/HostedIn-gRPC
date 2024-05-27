@@ -1,13 +1,25 @@
+const dotenv = require('dotenv');
+dotenv.config(); 
+
+console.log(dotenv.config)
+console.log("JWT_SECRET:", process.env.JWT_SECRET); 
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
-const dotenv = require('dotenv');
 const fs = require('fs');
 const PROTO_PATH = "./proto/multimedia.proto";
 const User = require('./models/User')
 const Accommodation = require('./models/Accommodation')
+const {
+    getTopBookedAcommodations,
+    getTopRatedAccommodations,
+    getTopBookedAccommodationsForHost,
+    getHostEarningsByMonth
+} = require('./services/statictics.service.js');
+const authorize = require('./middleware/authorize.interceptor.js')
+
+
 require('./database.js')
 
-dotenv.config();
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH);
 const multimediaProto = grpc.loadPackageDefinition(packageDefinition);
@@ -18,6 +30,28 @@ const server = new grpc.Server();
         uploadProfilePhoto: uploadProfilePhotoImpl,
         uploadAccommodationMultimedia: uploadAccommodationMultimediaImpl,
         downloadAccommodationMultimedia: downloadAccommodationMultimediaImpl
+    });
+    server.addService(multimediaProto.StaticticsService.service, {
+        GetMostBookedAccommodations: async (call, callback) => {
+            await authorize('Guest')(call, callback, async () => {
+                await GetMostBookedAccommodations(call, callback);
+            });
+        },
+        GetMostBookedAccommodationsOfHost: async (call, callback) => {
+            await authorize('Host')(call, callback, async () => {
+                await GetMostBookedAccommodationsOfHost(call, callback);
+            });
+        },
+        GetEarnings: async (call, callback) => {
+            await authorize('Host')(call, callback, async () => {
+                await GetEarnings(call, callback);
+            });
+        },
+        GetBestRatedAccommodations: async (call, callback) => {
+            await authorize('Guest')(call, callback, async () => {
+                await GetBestRatedAccommodations(call, callback);
+            });
+        }
     });
 
 
@@ -65,6 +99,7 @@ async function uploadProfilePhotoImpl(call) {
 async function downloadProfilePhotoImpl(call) {
     const id = call.request.userId;
 
+    console.log(id)
     try {
         const user = await User.findById(id);
 
@@ -142,13 +177,14 @@ async function downloadAccommodationMultimediaImpl(call) {
         const accommodation = await Accommodation.findById(call.request.modelId);
         let index = call.request.multimediaIndex;
 
+        console.log('---------------------------------')
+        console.log(`Descargando multimedia para ${accommodation.title}`)
         if (!accommodation) {
             console.error('Accommodation not found');
             call.end();
             return;
         }
 
-        console.log(accommodation.index)
         if (index === undefined) {
             index = 0;
             //console.error('Multimedia index not found');
@@ -175,10 +211,73 @@ async function downloadAccommodationMultimediaImpl(call) {
         }
 
         call.end(); 
-        
+        console.log(`Finalizo descarga para ${accommodation.title}`)
     } catch (err) {
         console.error(err);
         call.end();
     }
     
+}
+
+
+
+async function GetMostBookedAccommodations(call, callback) {
+    try {
+        const results = await getTopBookedAcommodations();
+        const response = {
+            accommodations: results.map(result => ({
+                title: result.title,
+                bookingsNumber: result.reservationCount
+            }))
+        };
+        console.log(response)
+        callback(null, response);
+    } catch (error) {
+        callback(error);
+    }
+}
+
+async function GetBestRatedAccommodations(call, callback) {
+    try {
+        const results = await getTopRatedAccommodations();
+        const response = {
+            accommodations: results.map(result => ({
+                name: result.title,
+                rate: result.averageRating
+            }))
+        };
+        callback(null, response);
+    } catch (error) {
+        callback(error);
+    }
+}
+
+async function GetEarnings(call, callback) {
+    try {
+        const results = await getHostEarningsByMonth(call.request.idHost);
+        const response = {
+            earnings: results.map(result => ({
+                month: result.month,
+                earning: result.earnings
+            }))
+        };
+        callback(null, response);
+    } catch (error) {
+        callback(error);
+    }
+}
+
+async function GetMostBookedAccommodationsOfHost(call, callback) {
+    try {
+        const results = await getTopBookedAccommodationsForHost(call.request.idHost);
+        const response = {
+            accommodations: results.map(result => ({
+                title: result.title,
+                bookings_number: result.reservationCount
+            }))
+        };
+        callback(null, response);
+    } catch (error) {
+        callback(error);
+    }
 }
