@@ -1,7 +1,6 @@
 const dotenv = require('dotenv');
 dotenv.config(); 
 
-console.log(dotenv.config)
 console.log("JWT_SECRET:", process.env.JWT_SECRET); 
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
@@ -195,12 +194,9 @@ async function downloadAccommodationMultimediaImpl(call) {
         const data = accommodation.multimedias;
 
         if (!data) {
-            console.error('Multimedia data not found');
             call.end();
             return;
         }
-
-        console.log('Downloading multimedia...');
 
         const buffer = Buffer.isBuffer(data[index]) ? data[index] : Buffer.from(data[index]);
 
@@ -211,7 +207,6 @@ async function downloadAccommodationMultimediaImpl(call) {
         }
 
         call.end(); 
-        console.log(`Finalizo descarga para ${accommodation.title}`)
     } catch (err) {
         console.error(err);
         call.end();
@@ -230,7 +225,6 @@ async function GetMostBookedAccommodations(call, callback) {
                 bookingsNumber: result.reservationCount
             }))
         };
-        console.log(response)
         callback(null, response);
     } catch (error) {
         callback(error);
@@ -269,13 +263,15 @@ async function GetEarnings(call, callback) {
 
 async function GetMostBookedAccommodationsOfHost(call, callback) {
     try {
+        console.log('Im here')
         const results = await getTopBookedAccommodationsForHost(call.request.idHost);
         const response = {
             accommodations: results.map(result => ({
                 title: result.title,
-                bookings_number: result.reservationCount
+                bookingsNumber: result.reservationCount
             }))
         };
+        console.log(response)
         callback(null, response);
     } catch (error) {
         callback(error);

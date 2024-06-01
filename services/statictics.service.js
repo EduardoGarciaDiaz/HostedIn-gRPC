@@ -105,7 +105,7 @@ const getTopBookedAccommodationsForHost = async (hostId) => {
         const results = await Booking.aggregate([
             {
                 $match: {
-                    hostUser: mongoose.Types.ObjectId(hostId)
+                    hostUser: new mongoose.Types.ObjectId(hostId)
                 }
             },
             {
@@ -140,7 +140,6 @@ const getTopBookedAccommodationsForHost = async (hostId) => {
             }
         ]).exec();
 
-        console.log(results);
         return results;
     } catch (err) {
         console.error(err);
@@ -153,7 +152,7 @@ const getHostEarningsByMonth = async (hostId) => {
         const results = await Booking.aggregate([
             {
                 $match: {
-                    hostUser: mongoose.Types.ObjectId(hostId),
+                    hostUser: new mongoose.Types.ObjectId(hostId),
                     bookingStatus: 'Overdue'
                 }
             },
