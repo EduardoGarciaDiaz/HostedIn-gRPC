@@ -8,6 +8,8 @@ const fs = require('fs');
 const PROTO_PATH = "./proto/multimedia.proto";
 const User = require('./models/User')
 const Accommodation = require('./models/Accommodation')
+const Booking = require('./models/Booking')
+const BookingStatus = require('./models/BookingStatus')
 const {
     getTopBookedAcommodations,
     getTopRatedAccommodations,
@@ -28,7 +30,8 @@ const server = new grpc.Server();
         downloadProfilePhoto: downloadProfilePhotoImpl,
         uploadProfilePhoto: uploadProfilePhotoImpl,
         uploadAccommodationMultimedia: uploadAccommodationMultimediaImpl,
-        downloadAccommodationMultimedia: downloadAccommodationMultimediaImpl
+        downloadAccommodationMultimedia: downloadAccommodationMultimediaImpl,
+        updateAccommodationMultimedia: updateAccommodationMultimediaImpl 
     });
     server.addService(multimediaProto.StaticticsService.service, {
         GetMostBookedAccommodations: async (call, callback) => {
@@ -215,6 +218,67 @@ async function downloadAccommodationMultimediaImpl(call) {
 }
 
 
+async function updateAccommodationMultimediaImpl(call) {
+    try {
+        let accommodationMultimediaBuffer = Buffer.alloc(0);
+        let accommodationId;
+        let multimediaIndex;
+        
+
+        call.on('data', function(updateMultimediaRequest){
+
+            if (!accommodationId) {
+                accommodationId = updateMultimediaRequest.modelId;
+            }
+            if(!multimediaIndex) {
+                multimediaIndex = updateMultimediaRequest.multimediaId;
+            }
+
+            accommodationMultimediaBuffer = Buffer.concat([accommodationMultimediaBuffer, updateMultimediaRequest.data]);
+        });
+
+
+        call.on('end', async function () {
+
+            const hasBookings = await Booking.findOne({accommodation : accommodationId, bookingStatus : BookingStatus.CURRENT})
+            if (hasBookings) {
+                call.write({ description:  "El alojamiento todavia tiene reservaciones pendientes." });
+                call.end();
+                return;
+            }
+
+            console.log(hasBookings);
+        
+
+                if (multimediaIndex === undefined) {
+                    multimediaIndex = 0;
+                
+                }
+
+                const updateField = `multimedias.${multimediaIndex}`;
+                const update = {};
+                update[updateField] = accommodationMultimediaBuffer;
+
+                const updatedAccommodation = await Accommodation.findOneAndUpdate(
+                    { _id: accommodationId },
+                    { $set: update },
+                    { new: true }
+                );
+
+                if (!updatedAccommodation) {
+                    console.error('Accommodation not found');
+                    return;
+                }
+
+                call.write({ description: 'Upload successful. Accommodation multimedia updated' });
+                call.end();            
+        });
+    } catch (err) {
+        console.error(err);
+        call.write({ description: 'Error uploading multimedia' });
+        call.end();
+    }
+}
 
 async function GetMostBookedAccommodations(call, callback) {
     try {
