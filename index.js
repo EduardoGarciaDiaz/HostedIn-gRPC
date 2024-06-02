@@ -138,7 +138,6 @@ async function uploadAccommodationMultimediaImpl(call) {
     let accommodationMultimediaBuffer = Buffer.alloc(0);
     let accommodationId;
     
-    console.log("ENTRÓ")
 
     call.on('data', function(uploadMultimediaRequest){
 
