@@ -1,7 +1,6 @@
 const dotenv = require('dotenv');
 dotenv.config(); 
 
-console.log("JWT_SECRET:", process.env.JWT_SECRET); 
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 const fs = require('fs');
