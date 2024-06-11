@@ -62,7 +62,7 @@ server.bindAsync(`0.0.0.0:${process.env.SERVER_PORT}`, grpc.ServerCredentials.cr
 
 
 async function uploadProfilePhotoImpl(call) {
-    let profilePhotoBuffer = Buffer.alloc(0);
+   let profilePhotoBuffer = Buffer.alloc(0);
     let userId;
     call.on('data', function(uploadMultimediaRequest){
 
@@ -136,7 +136,6 @@ async function downloadProfilePhotoImpl(call) {
 async function uploadAccommodationMultimediaImpl(call) {
     let accommodationMultimediaBuffer = Buffer.alloc(0);
     let accommodationId;
-    
 
     call.on('data', function(uploadMultimediaRequest){
 
