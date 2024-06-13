@@ -146,36 +146,31 @@ const getTopBookedAccommodationsForHost = async (hostId) => {
         throw err;
     }
 }
-
 const getHostEarningsByMonth = async (hostId) => {
     try {
+        const currentYear = new Date().getFullYear();
+
         const results = await Booking.aggregate([
             {
                 $match: {
                     hostUser: new mongoose.Types.ObjectId(hostId),
-                    bookingStatus: 'Overdue'
-                }
-            },
-            {
-                $addFields: {
-                    totalNights: { $subtract: [ { $divide: [ { $subtract: [ "$endingDate", "$beginningDate" ] }, 1000 * 60 * 60 * 24 ] }, 1 ] }
-                }
-            },
-            {
-                $addFields: {
-                    earnings: { $multiply: [ "$totalNights", "$nightPrice" ] }
+                    bookingStatus: 'Overdue',
+                    beginningDate: {
+                        $gte: new Date(`${currentYear}-01-01`),
+                        $lt: new Date(`${currentYear + 1}-01-01`)
+                    }
                 }
             },
             {
                 $group: {
-                    _id: { $month: "$beginningDate" },
-                    earnings: { $sum: "$earnings" }
+                    _id: { month: { $month: "$beginningDate" } },
+                    earnings: { $sum: "$totalCost" }
                 }
             },
             {
                 $project: {
                     _id: 0,
-                    month: "$_id",
+                    month: "$_id.month",
                     earnings: 1
                 }
             },
@@ -191,6 +186,7 @@ const getHostEarningsByMonth = async (hostId) => {
         throw err;
     }
 }
+
 
 
 module.exports = {
